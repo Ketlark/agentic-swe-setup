@@ -1,0 +1,22 @@
+{
+  "name": "@ketlark/docs-proxy",
+  "version": "1.0.0",
+  "description": "Single-tool MCP proxy that fetches documentation from GitHub repos, direct URLs, or a built-in library-name map — pure HTTP, no external doc server dependency",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "docs-proxy": "src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node test/smoke.mjs"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "zod": "^3.25.0"
+  }
+}

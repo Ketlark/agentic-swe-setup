@@ -6,3 +6,5 @@ sessions/
 .env
 auth.json
 bin/
+mcps/*
+!mcps/docs-proxy/
