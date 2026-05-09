@@ -2,33 +2,37 @@
 //
 // Spawns hugin-mcp as a subprocess and communicates via JSON-RPC 2.0 over stdio.
 // No dependency on @modelcontextprotocol/sdk — raw protocol is straightforward.
+//
+// MCP lifecycle:
+//   1. Client sends "initialize" (with capabilities + client info)
+//   2. Server responds with server info + capabilities
+//   3. Client sends "initialized" notification (no id, no response)
+//   4. Normal operation: tools/list, tools/call, etc.
 
 import { spawn, type ChildProcess } from "node:child_process";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-interface JsonRpcRequest {
-	jsonrpc: "2.0";
-	id: number;
-	method: string;
-	params?: Record<string, unknown>;
-}
-
-interface JsonRpcResponse {
+interface JsonRpcMessage {
 	jsonrpc: "2.0";
 	id?: number;
+	method?: string;
+	params?: Record<string, unknown>;
 	result?: unknown;
 	error?: { code: number; message: string; data?: unknown };
 }
 
-interface McpTool {
+export interface McpTool {
 	name: string;
 	description?: string;
-	inputSchema?: Record<string, unknown>;
+	inputSchema?: {
+		type: string;
+		properties?: Record<string, Record<string, unknown>>;
+		required?: string[];
+	};
 }
 
-interface McpToolResult {
+export interface McpToolResult {
 	content: Array<{ type: string; text: string }>;
 	isError?: boolean;
 }
@@ -54,8 +58,10 @@ export class McpStdioClient {
 		return this.tools;
 	}
 
-	/** Spawn the MCP server process. Resolves when initialized (tools/list received). */
-	async connect(command: string, args: string[], timeoutMs = 10_000): Promise<void> {
+	/**
+	 * Spawn the MCP server, perform the initialize handshake, then discover tools.
+	 */
+	async connect(command: string, args: string[], timeoutMs = 15_000): Promise<void> {
 		this.proc = spawn(command, args, {
 			stdio: ["pipe", "pipe", "pipe"],
 			env: { ...process.env },
@@ -64,7 +70,6 @@ export class McpStdioClient {
 		const proc = this.proc;
 
 		proc.stderr?.on("data", (chunk: Buffer) => {
-			// MCP servers log debug info to stderr — forward to our stderr
 			process.stderr.write(chunk);
 		});
 
@@ -87,37 +92,30 @@ export class McpStdioClient {
 			this.rejectAll(err);
 		});
 
-		// Wait for the process to be ready, then list tools
-		await new Promise<void>((resolve, reject) => {
-			const timer = setTimeout(() => {
-				reject(new Error("hugin-mcp: timed out waiting for process"));
-			}, timeoutMs);
+		// Step 1: initialize handshake
+		const initResult = await this.request<Record<string, unknown>>("initialize", {
+			protocolVersion: "2024-11-05",
+			capabilities: {},
+			clientInfo: { name: "pi-hugin", version: "1.0.0" },
+		}, timeoutMs);
 
-			// Give the process a moment to start
-			proc.stdout?.once("data", () => {
-				clearTimeout(timer);
-				resolve();
-			});
+		// Step 2: initialized notification (no id — server won't respond)
+		this.send({ jsonrpc: "2.0", method: "notifications/initialized" });
 
-			// Also resolve if process is already flowing
-			setTimeout(() => {
-				clearTimeout(timer);
-				resolve();
-			}, 500);
-		});
-
-		// Discover tools
-		this.tools = await this.request<McpTool[]>("tools/list", {}, timeoutMs);
+		// Step 3: discover tools
+		const listResult = await this.request<{ tools: McpTool[] }>("tools/list", {}, timeoutMs);
+		this.tools = listResult.tools ?? [];
 	}
 
 	/** Call a tool on the MCP server. */
-	async callTool(name: string, args: Record<string, unknown>, timeoutMs = 30_000): Promise<McpToolResult> {
+	async callTool(name: string, args: Record<string, unknown>, timeoutMs = 60_000): Promise<McpToolResult> {
 		return this.request<McpToolResult>("tools/call", { name, arguments: args }, timeoutMs);
 	}
 
-	/** Kill the subprocess. */
- disconnect(): void {
+	/** Kill the subprocess and reject pending requests. */
+	disconnect(): void {
 		if (this.proc && !this.proc.killed) {
+			this.proc.stdin?.end();
 			this.proc.kill("SIGTERM");
 		}
 		this.proc = null;
@@ -125,6 +123,10 @@ export class McpStdioClient {
 	}
 
 	// ── Internals ────────────────────────────────────────────────────────────
+
+	private send(msg: JsonRpcMessage): void {
+		this.proc?.stdin?.write(JSON.stringify(msg) + "\n");
+	}
 
 	private request<T>(method: string, params: Record<string, unknown>, timeoutMs: number): Promise<T> {
 		return new Promise<T>((resolve, reject) => {
@@ -140,13 +142,11 @@ export class McpStdioClient {
 				timer,
 			});
 
-			const msg: JsonRpcRequest = { jsonrpc: "2.0", id, method, params };
-			this.proc?.stdin?.write(JSON.stringify(msg) + "\n");
+			this.send({ jsonrpc: "2.0", id, method, params });
 		});
 	}
 
 	private drain(): void {
-		// Parse newline-delimited JSON-RPC messages
 		let start = 0;
 		while (true) {
 			const idx = this.buffer.indexOf("\n", start);
@@ -158,18 +158,17 @@ export class McpStdioClient {
 			if (!line) continue;
 
 			try {
-				const msg = JSON.parse(line) as JsonRpcResponse;
+				const msg = JSON.parse(line) as JsonRpcMessage;
 				this.handle(msg);
 			} catch {
-				// Not valid JSON — skip (could be server logging)
+				// Not valid JSON — skip
 			}
 		}
 
 		this.buffer = this.buffer.slice(start);
 	}
 
-	private handle(msg: JsonRpcResponse): void {
-		// Notifications (no id) — ignore
+	private handle(msg: JsonRpcMessage): void {
 		if (msg.id === undefined) return;
 
 		const entry = this.pending.get(msg.id);
