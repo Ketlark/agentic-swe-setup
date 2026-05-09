@@ -1,0 +1,13 @@
+{
+  "name": "pi-web-search",
+  "private": true,
+  "type": "module",
+  "description": "Web search extension for Pi using Z.AI Web Search API",
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "^0.74.0",
+    "@earendil-works/pi-tui": "^0.74.0"
+  },
+  "pi": {
+    "extensions": ["./index.ts"]
+  }
+}

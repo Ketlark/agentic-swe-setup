@@ -3,4 +3,6 @@ node_modules/
 .DS_Store
 *.bak
 sessions/
+.env
 auth.json
+bin/

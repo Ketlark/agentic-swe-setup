@@ -1,6 +1,6 @@
 {
-  "defaultProvider": "zai-anthropic",
-  "defaultModel": "claude-sonnet-4-20250514",
+  "defaultProvider": "zai",
+  "defaultModel": "glm-5-turbo",
   "defaultThinkingLevel": "medium",
   "compaction": {
     "enabled": true,
@@ -20,7 +20,14 @@
   "theme": "default",
   "quietStartup": false,
   "shellPath": "/bin/zsh",
-  "extensions": ["extensions/swe-guard"],
-  "skills": [],
-  "enableSkillCommands": true
+  "extensions": [
+    "extensions/bash-guard",
+    "extensions/web-search",
+    "extensions/web-reader"
+  ],
+  "skills": [
+    "skills/no-slop"
+  ],
+  "enableSkillCommands": true,
+  "lastChangelogVersion": "0.74.0"
 }

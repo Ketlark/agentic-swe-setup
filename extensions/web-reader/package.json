@@ -1,0 +1,12 @@
+{
+  "name": "@earendil-works/pi-web-reader",
+  "version": "1.0.0",
+  "private": true,
+  "pi": {
+    "extensions": ["./index.ts"]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@sinclair/typebox": "*"
+  }
+}

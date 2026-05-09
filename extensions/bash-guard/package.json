@@ -1,0 +1,14 @@
+{
+  "name": "pi-bash-guard",
+  "private": true,
+  "type": "module",
+  "description": "Bash guard extension for Pi coding agent",
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "^0.74.0",
+    "@earendil-works/pi-tui": "^0.74.0",
+    "shell-quote": "^1.8.3"
+  },
+  "pi": {
+    "extensions": ["./index.ts"]
+  }
+}
