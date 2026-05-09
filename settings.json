@@ -22,8 +22,7 @@
   "shellPath": "/bin/zsh",
   "extensions": [
     "extensions/bash-guard",
-    "extensions/web-search",
-    "extensions/web-reader"
+    "extensions/hugin"
   ],
   "skills": [
     "skills/no-slop"

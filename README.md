@@ -11,8 +11,7 @@ Pi coding agent configuration — extensions, skills, and project templates.
 | Extension | Purpose |
 |---|---|
 | [bash-guard](extensions/bash-guard/) | Intercepts dangerous shell commands before they run. Interactive overlay prompts the user; non-interactive subagents get hard-blocked on catastrophic operations. |
-| [web-search](extensions/web-search/) | `web_search` tool backed by Z.AI's MCP server. Structured results with domain and recency filters. |
-| [web-reader](extensions/web-reader/) | `web_read` tool backed by Z.AI's MCP server. Fetches any URL and returns markdown or plain text. |
+| [hugin](extensions/hugin/) | Bridges [hugin-mcp](https://github.com/Ketlark/hugin-mcp) into pi. Provides `web_search` (70+ engines via SearXNG) and `web_read` (14+ specialized handlers). 100% local, zero API keys. |
 
 ### Skills
 
@@ -143,8 +142,7 @@ agentic-swe-setup/
 ├── setup.sh                Install script
 ├── extensions/
 │   ├── bash-guard/         Shell command safety net
-│   ├── web-search/         Z.AI web search tool
-│   └── web-reader/         Z.AI web reader tool
+│   └── hugin/              hugin-mcp bridge (web search + reader)
 ├── skills/
 │   └── no-slop/            Anti-AI-writing enforcement
 │       ├── SKILL.md
@@ -156,12 +154,54 @@ agentic-swe-setup/
 └── bin/                    Local CLI tools (fd, etc.)
 ```
 
+## hugin
+
+Bridges [hugin-mcp](https://github.com/Ketlark/hugin-mcp) — a local MCP server for web search and reading — into pi as native tools.
+
+### Setup
+
+Clone hugin-mcp next to this repo (or set `HUGIN_MCP_PATH`):
+
+```bash
+cd /path/to/agentic-swe-setup/..
+git clone https://github.com/Ketlark/hugin-mcp.git
+cd hugin-mcp && npm install
+```
+
+Optional — start SearXNG for full search (70+ engines):
+
+```bash
+cd hugin-mcp && docker compose up -d
+```
+
+Without SearXNG, hugin falls back to Bing scraping automatically.
+
+### How it works
+
+The extension spawns hugin-mcp as a subprocess at session start, discovers its tools via `tools/list`, and registers each one with `pi.registerTool`. Communication is JSON-RPC 2.0 over stdio — no HTTP, no SDK dependency.
+
+### Tools
+
+| Tool | Description |
+|---|---|
+| `web_search` | Search the web via SearXNG (70+ engines) or Bing fallback. Cached 24h. |
+| `web_read` | Read any URL → clean markdown. 14+ specialized site handlers. Batch mode. |
+
+See the [hugin-mcp README](https://github.com/Ketlark/hugin-mcp) for full parameter docs.
+
+### Slash commands
+
+| Command | Description |
+|---|---|
+| `/hugin-status` | Connection status, tool count, call stats |
+
 ## Requirements
 
 - [Node.js](https://nodejs.org/) 22+
 - [pi](https://github.com/earendil-works/pi-coding-agent) 0.74+
 - [pnpm](https://pnpm.io/) 9+
-- API keys for Z.AI web-search and web-reader extensions (see `.env`)
+- [hugin-mcp](https://github.com/Ketlark/hugin-mcp) (cloned next to this repo, or set `HUGIN_MCP_PATH`)
+- [Docker](https://www.docker.com/) (optional, for SearXNG)
 
 ## License
 
