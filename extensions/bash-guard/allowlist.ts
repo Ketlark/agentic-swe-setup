@@ -3,9 +3,9 @@
 // Three scopes: once (no storage), session (in-memory), always (persisted to disk).
 // Regex patterns are pre-compiled on mutation for fast matching.
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
+import { join } from "node:path";
 
 const ALLOWLIST_DIR = join(homedir(), ".pi");
 const ALLOWLIST_FILE = join(ALLOWLIST_DIR, "bash-guard-allowlist.json");
@@ -19,7 +19,10 @@ function loadPersisted(): string[] {
 		if (!existsSync(ALLOWLIST_FILE)) return [];
 		const data = JSON.parse(readFileSync(ALLOWLIST_FILE, "utf8"));
 		return Array.isArray(data.always) ? data.always : [];
-	} catch {
+	} catch (err) {
+		console.warn(
+			`[bash-guard] failed to load allowlist: ${err instanceof Error ? err.message : err}`
+		);
 		return [];
 	}
 }
@@ -27,12 +30,20 @@ function loadPersisted(): string[] {
 function savePersisted(always: string[]): void {
 	try {
 		mkdirSync(ALLOWLIST_DIR, { recursive: true });
-		writeFileSync(ALLOWLIST_FILE, JSON.stringify({ always }, null, 2) + "\n", "utf8");
-	} catch { /* best-effort */ }
+		writeFileSync(ALLOWLIST_FILE, `${JSON.stringify({ always }, null, 2)}\n`, "utf8");
+	} catch (err) {
+		console.warn(
+			`[bash-guard] failed to save allowlist: ${err instanceof Error ? err.message : err}`
+		);
+	}
 }
 
 function compileOne(pattern: string): RegExp | null {
-	try { return new RegExp(pattern); } catch { return null; }
+	try {
+		return new RegExp(pattern);
+	} catch {
+		return null;
+	}
 }
 
 function compileAll(patterns: string[]): RegExp[] {
@@ -144,8 +155,16 @@ export class Allowlist {
 		savePersisted([]);
 	}
 
-	get sessionCount(): number { return this.sessionPatterns.length; }
-	get alwaysCount(): number { return this.alwaysPatterns.length; }
-	get sessionRules(): readonly string[] { return this.sessionPatterns; }
-	get alwaysRules(): readonly string[] { return this.alwaysPatterns; }
+	get sessionCount(): number {
+		return this.sessionPatterns.length;
+	}
+	get alwaysCount(): number {
+		return this.alwaysPatterns.length;
+	}
+	get sessionRules(): readonly string[] {
+		return this.sessionPatterns;
+	}
+	get alwaysRules(): readonly string[] {
+		return this.alwaysPatterns;
+	}
 }

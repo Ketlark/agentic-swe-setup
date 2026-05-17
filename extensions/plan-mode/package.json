@@ -1,0 +1,16 @@
+{
+  "name": "pi-plan-mode",
+  "private": true,
+  "type": "module",
+  "description": "Plan mode extension — two-phase planning workflow adapted for this harness",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "^0.74.0",
+    "@earendil-works/pi-tui": "^0.74.0"
+  },
+  "pi": {
+    "extensions": ["./index.ts"]
+  }
+}

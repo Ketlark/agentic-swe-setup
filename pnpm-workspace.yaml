@@ -1,2 +1,4 @@
 packages:
   - "extensions/*"
+  - "lib/*"
+  - "mcps/docs-proxy"

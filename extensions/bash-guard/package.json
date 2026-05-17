@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "description": "Bash guard extension for Pi coding agent",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "^0.74.0",
     "@earendil-works/pi-tui": "^0.74.0",

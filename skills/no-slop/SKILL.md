@@ -1,6 +1,7 @@
 ---
 name: no-slop
 description: Eliminate AI writing patterns from any prose output. Activates on every writing task — commit messages, PR descriptions, documentation, READMEs, blog posts, emails, comments, code reviews. Enforces banned vocabulary, structural variety, punctuation discipline, and authentic voice. Apply silently on all text produced.
+assumption: Models produce detectable AI-pattern prose — formulaic structure, sycophantic tone, redundant transitions — without explicit counter-constraints. Re-evaluate when model outputs consistently pass human-written detection across varied prose tasks.
 ---
 
 # No Slop

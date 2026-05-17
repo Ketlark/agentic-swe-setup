@@ -1,32 +1,10 @@
 # agentic-swe-setup
 
-Pi coding agent configuration — extensions, skills, and project templates.
+Portable Pi configuration — extensions, skills, MCP bridges, and templates.
+Clone on any machine, run `./setup.sh`, start working.
 
-[Pi](https://github.com/earendil-works/pi-coding-agent) is a terminal-based coding agent. This repo holds a portable setup you can clone on any machine and start working immediately.
-
-## What's inside
-
-### Extensions
-
-| Extension | Purpose |
-|---|---|
-| [bash-guard](extensions/bash-guard/) | Intercepts dangerous shell commands before they run. Interactive overlay prompts the user; non-interactive subagents get hard-blocked on catastrophic operations. |
-| [hugin](extensions/hugin/) | Bridges [hugin-mcp](https://github.com/Ketlark/hugin-mcp) into pi. Provides `web_search` (70+ engines via SearXNG) and `web_read` (14+ specialized handlers). 100% local, zero API keys. |
-| [docs-proxy](extensions/docs-proxy/) | Bridges docs-proxy MCP server into pi. Provides `get_docs` — fetch up-to-date documentation for any library, GitHub repo, or URL. Pure HTTP, no external doc server. |
-| [pi-subagents](https://github.com/nicobailon/pi-subagents) | Async subagent delegation. Scout, researcher, planner, worker, reviewer, oracle, context-builder. Chain, parallel, background runs. Child-safe (no recursion). |
-
-### Skills
-
-| Skill | Purpose |
-|---|---|
-| [no-slop](skills/no-slop/) | Anti-AI-writing-patterns enforcement. Activates on every prose output — commits, PRs, docs, READMEs, reviews. Banned vocabulary, structural variety, authentic voice. |
-| [AGENTS.md](templates/AGENTS.md) | Karpathy-inspired behavioral rules (think first, simplicity, surgical changes, goal-driven, fail loud). Copy to project root. |
-
-### Templates
-
-| Template | Purpose |
-|---|---|
-| [AGENTS.md](templates/AGENTS.md) | Project-level agent configuration. Copy to a project root to guide coding agents. |
+[Pi](https://github.com/earendil-works/pi-coding-agent) is a terminal coding
+agent. This repo holds the opinionated personal harness layered on top.
 
 ## Install
 
@@ -36,268 +14,89 @@ cd agentic-swe-setup
 ./setup.sh
 ```
 
-The script:
-
-1. Checks that [pi](https://github.com/earendil-works/pi-coding-agent) is installed
-2. Creates `~/.config/pi-coding-agent` and symlinks `settings.json` into it
-3. Installs peer dependencies (`pnpm install`)
-4. Validates the setup
-
-After that, launch pi from this directory:
+The script checks Pi is installed, symlinks `settings.json` into
+`~/.config/pi-coding-agent`, runs `pnpm install`, and clones the MCP servers
+declared in `setup.sh`. Then launch Pi from this directory:
 
 ```bash
 pi
 ```
 
-Pi reads `settings.json` from the working directory and loads extensions and skills relative to it.
+## What's inside
 
-## bash-guard
+### Extensions
 
-The main extension. Intercepts every `bash` tool call issued by the agent and runs risk analysis before execution.
-
-### How it works
-
-```
-Agent issues bash tool call
-        │
-        ▼
-   Allowlist match? ──yes──▶ Allow silently
-        │
-        no
-        ▼
-   Analyze command
-   (shell-quote tokenizer)
-        │
-   Risk found?
-   ├─ no  → Allow silently
-   └─ yes → Show interactive overlay
-            ├─ Allow once
-            ├─ Allow session  (similar commands skip prompt)
-            ├─ Allow always   (persist rule to ~/.pi/)
-            └─ Abort         (block + tell agent)
-```
-
-In **subagent mode** (non-interactive), the overlay is replaced by hard-blocks on catastrophic operations — no prompting possible.
-
-### Slash commands
-
-| Command | Description |
+| Extension | Purpose |
 |---|---|
-| `/bash-guard-stats` | Session statistics (allowed, blocked, top reasons) |
-| `/bash-guard-yolo` | Toggle YOLO mode (skip all checks) |
-| `/bash-guard-allow <regex> [session\|always]` | Add a pattern to the allowlist |
-| `/bash-guard-remove <pattern>` | Remove a rule |
-| `/bash-guard-rules` | List all active rules |
-| `/bash-guard-clear [session\|always\|all]` | Clear rules |
+| [bash-guard](extensions/bash-guard/) | Intercepts dangerous shell commands. Interactive in main session, hard-block in subagents, whitelist-only in plan phase. |
+| [plan-mode](extensions/plan-mode/) | Two-phase planning workflow: plan (strong model + read-only) → human gate → execute (fast model + full tools). Plans committed to `.plans/`. |
+| [rtk-rewrite](extensions/rtk-rewrite/) | Rewrites shell commands through [RTK](https://github.com/rtk-ai/rtk) to compress noisy command output. |
+| [hugin](extensions/hugin/) | Bridges [hugin-mcp](https://github.com/Ketlark/hugin-mcp) — `web_search` (SearXNG, 70+ engines) + `web_read` (14+ specialized handlers). |
+| [docs-proxy](extensions/docs-proxy/) | Bridges the local [docs-proxy](mcps/docs-proxy/) MCP — `get_docs` for libraries, GitHub repos, or arbitrary URLs. |
 
-### Flags
+### Skills
 
-| Flag | Default | Description |
+Skills are markdown capability packages activated by the model when relevant.
+See [`skills/CREDITS.md`](skills/CREDITS.md) for sources and adaptations.
+
+| Skill | Purpose |
+|---|---|
+| [no-slop](skills/no-slop/) | Anti-AI-writing-patterns enforcement on every prose output. |
+| [diagnose](skills/diagnose/) | Structured root-cause analysis with HITL loop. |
+| [grill-me](skills/grill-me/) | Constrained design dialogue: one question at a time, explicit recommendations. |
+| [grill-with-docs](skills/grill-with-docs/) | Same, but produces ADR-formatted artifacts. |
+| [improve-codebase-architecture](skills/improve-codebase-architecture/) | Deepen modules, raise leverage. The methodology behind this repo's refactors. |
+| [prototype](skills/prototype/) | Throwaway exploration mode — single-file, decision-driven. |
+| [review](skills/review/) | High-level review against initial intent (vs spec conformity). |
+| [zoom-out](skills/zoom-out/) | Pull back from tactical loops to strategic context. |
+| [narrow-first](skills/narrow-first/) | Acceptance-gated narrowing loop — broaden only after measured failure. |
+| [handoff](skills/handoff/) | Compose context handoffs between sessions or agents. |
+
+### MCP servers
+
+| MCP | Source | Tools |
 |---|---|---|
-| `--bash-guard-yolo` | off | Start in YOLO mode |
-| `--bash-guard-auto-allow` | off | Auto-allow flagged commands when no UI |
-
-### Architecture
-
-```
-extensions/bash-guard/
-├── index.ts       Entry point — event handlers, commands, flags
-├── analyze.ts     Command tokenizer + risk rules (shell-quote)
-├── allowlist.ts   Pattern allowlist (session + always, pre-compiled regex)
-├── ui.ts          Interactive overlay (bottom-anchored SelectList)
-├── subagent.ts    Subagent hard-block (delegates to analyze.ts)
-├── types.ts       Shared types and constants
-└── package.json
-```
-
-### What gets flagged
-
-- **File deletion**: `rm -rf`, `find -delete`, `truncate`
-- **Privilege escalation**: `sudo`, `doas`, `su`
-- **Disk operations**: `dd`, `mkfs`, `wipefs`, `diskutil erase`, `parted`
-- **Destructive git**: `push --force`, `reset --hard`, `clean -f`, `filter-branch`
-- **In-place modification**: `sed -i`, `perl -i`
-- **Pipe to shell**: `curl | bash`, `wget | sh`
-- **Permissions**: `chmod 777`, `chown -R`
-- **Package publish**: `npm publish`, `cargo publish`, `yarn publish`
-- **Container/infra teardown**: `kubectl delete`, `terraform destroy`, `docker system prune`
-- **Sensitive file access**: `.env`, `.ssh/`, `.pem`, credentials
-
-Read-only git commands (`status`, `log`, `diff`, `branch`, `tag`, …) are whitelisted and never flagged.
-
-## no-slop skill
-
-A writing-quality skill that activates on every prose output. Enforces:
-
-- Banned vocabulary (80+ words, 50+ phrases)
-- No anaphora, no sentence starters from a fixed set
-- Structural variety in paragraph length
-- Plain jargon instead of marketing speak
-- Authentic voice, no filler
-
-See [skills/no-slop/SKILL.md](skills/no-slop/SKILL.md) for the full rule set.
-
-## Project structure
-
-```
-agentic-swe-setup/
-├── settings.json           Pi configuration (extensions, skills, model)
-├── setup.sh                Install script
-├── extensions/
-│   ├── bash-guard/         Shell command safety net
-│   ├── hugin/              hugin-mcp bridge (web search + reader)
-│   └── docs-proxy/         docs-proxy MCP bridge (fetch docs)
-├── mcps/
-│   ├── hugin-mcp/          hugin MCP server (auto-cloned by setup.sh)
-│   └── docs-proxy/         docs-proxy MCP server (tracked by git)
-├── skills/
-│   └── no-slop/            Anti-AI-writing enforcement
-│       ├── SKILL.md
-│       └── references/
-│           ├── banned-words.md
-│           └── examples.md
-├── templates/
-│   └── AGENTS.md           Project-level agent config template
-└── bin/                    Local CLI tools (fd, etc.)
-```
-
-## Subagents
-
-pi-subagents adds a `subagent` tool to pi. The parent session delegates work to focused child sessions.
-
-### Builtin agents
-
-| Agent | Thinking | Role |
-|---|---|---|
-| `scout` | low | Fast codebase recon. Returns compressed context for handoff. |
-| `researcher` | default | Web/docs research with sources. |
-| `planner` | default | Implementation plan from context. Read and plan, don't edit. |
-| `worker` | default | Implementation. Edits files, validates, escalates unknowns. |
-| `reviewer` | **high** | Code review: correctness, tests, edge cases, simplicity. |
-| `oracle` | **high** | Second opinion. Challenges assumptions, no edits. |
-| `context-builder` | default | Deep context gathering for planning handoff. |
-| `delegate` | default | Lightweight general-purpose child. |
-
-### Common commands
-
-```text
-# Natural language (pi decides which agent to use)
-Use reviewer to review this diff.
-Ask oracle for a second opinion on my current plan.
-Run parallel reviewers: one for correctness, one for tests.
-
-# Direct commands
-/run scout "scan the codebase"
-/chain scout "analyze auth" -> planner -> worker
-/parallel reviewer "correctness" -> reviewer "tests" --bg
-
-# Diagnostics
-/subagents-doctor
-```
-
-### Orchestration pattern
-
-``nclarify → planner → worker → fresh reviewers → worker```
-
-### Safety
-
-Child sessions cannot launch subagents (no recursion). bash-guard's subagent hard-block applies to all child sessions.
-
-## hugin
-
-Bridges [hugin-mcp](https://github.com/Ketlark/hugin-mcp) — a local MCP server for web search and reading — into pi as native tools.
-
-### Setup
-
-hugin-mcp lives in `mcps/hugin-mcp/` and is cloned automatically by `setup.sh`. You can also set `HUGIN_MCP_PATH` to override the auto-detected location.
-
-```bash
-./setup.sh          # clones + installs everything
-./setup.sh mcps     # clones/updates MCP servers only
-```
-
-Optional — start SearXNG for full search (70+ engines):
-
-```bash
-cd mcps/hugin-mcp && docker compose up -d
-```
-
-Without SearXNG, hugin falls back to Bing scraping automatically.
-
-### How it works
-
-The extension spawns hugin-mcp as a subprocess at session start, discovers its tools via `tools/list`, and registers each one with `pi.registerTool`. Communication is JSON-RPC 2.0 over stdio — no HTTP, no SDK dependency.
-
-### Tools
-
-| Tool | Description |
-|---|---|
-| `web_search` | Search the web via SearXNG (70+ engines) or Bing fallback. Cached 24h. |
-| `web_read` | Read any URL → clean markdown. 14+ specialized site handlers. Batch mode. |
-
-See the [hugin-mcp README](https://github.com/Ketlark/hugin-mcp) for full parameter docs.
-
-### Slash commands
-
-| Command | Description |
-|---|---|
-| `/hugin-status` | Connection status, tool count, call stats |
-
-## docs-proxy
-
-Bridges the internal docs-proxy MCP server into pi. Provides a `get_docs` tool that fetches up-to-date documentation for any library, GitHub repo, or direct URL.
-
-### Setup
-
-docs-proxy lives in `mcps/docs-proxy/` and is tracked by git — no clone step needed. You can also set `DOCS_PROXY_PATH` to override the auto-detected location.
-
-### How it works
-
-The extension spawns docs-proxy as a subprocess at session start, discovers its tools via `tools/list`, and registers each one with `pi.registerTool`. Communication is JSON-RPC 2.0 over stdio.
-
-### Tools
-
-| Tool | Description |
-|---|---|
-| `get_docs` | Fetch documentation for a library name, GitHub repo (`owner/repo`), or direct URL. Returns clean markdown. |
-
-Usage patterns:
-
-```text
-get_docs("next.js")              # library name → auto-resolved
-get_docs("vercel/next.js")        # GitHub repo → fetched from raw.githubusercontent.com
-get_docs("https://docs.stripe.com")  # direct URL → converted to markdown
-get_docs("prisma schema relations")  # topic-specific query
-```
-
-### Slash commands
-
-| Command | Description |
-|---|---|
-| `/docs-status` | Connection status, tool count, call stats |
-
-## MCP servers
-
-MCP servers live in `mcps/`. They're cloned and installed by `setup.sh` — no manual step required.
-
-| MCP server | Source | Tools |
-|---|---|---|
-| [pi-subagents](https://github.com/nicobailon/pi-subagents) | npm package (user) | `subagent` tool, `/run`, `/chain`, `/parallel`, `/subagents-doctor` |
-| [hugin-mcp](https://github.com/Ketlark/hugin-mcp) | `mcps/hugin-mcp/` | `web_search`, `web_read` |
+| [hugin-mcp](https://github.com/Ketlark/hugin-mcp) | `mcps/hugin-mcp/` (cloned by `setup.sh`) | `web_search`, `web_read` |
 | [docs-proxy](mcps/docs-proxy/) | `mcps/docs-proxy/` (tracked) | `get_docs` |
+| [pi-subagents](https://github.com/nicobailon/pi-subagents) | npm (user) | `subagent` tool, `/run`, `/chain`, `/parallel`, `/subagents-doctor` |
 
-To add a new MCP server:
+### Templates
 
-1. Add an entry to the `MCP_REPOS` array in `setup.sh`
-2. Write an extension in `extensions/` that bridges it into pi
-3. Run `./setup.sh mcps` to clone it
+Drop-in files for end-user projects. Not auto-installed — copy by hand into
+the target project's root, then commit it there. The agent picks them up on
+the next session in that project.
+
+| Template | Drop into | Purpose |
+|---|---|---|
+| [AGENTS.md](templates/AGENTS.md) | `<your-project>/AGENTS.md` | Karpathy-inspired behavioural rules read by the agent on every session: think first, simplicity, surgical changes, goal-driven, fail loud. |
+
+```bash
+cp ~/path/to/agentic-swe-setup/templates/AGENTS.md /path/to/your-project/AGENTS.md
+# Edit the file to match your project's conventions, then commit it.
+```
+
+## Architecture & contributing
+
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — layers, lifecycle, cross-package contracts.
+- [`HOW-TO.md`](HOW-TO.md) — personal cheat-sheet: plan mode, skills, bash-guard, workflows.
+- [`docs/FILE-BACKED-STATE.md`](docs/FILE-BACKED-STATE.md) — convention for raw trace storage (`.pi/traces/`).
+- [`CHANGELOG.md`](CHANGELOG.md) — what's changed and why.
+- [`docs/adr/`](docs/adr/) — Architectural Decision Records.
+- [`docs/EXTENSION-AUTHORING.md`](docs/EXTENSION-AUTHORING.md), [`MCP-AUTHORING.md`](docs/MCP-AUTHORING.md), [`SKILL-AUTHORING.md`](docs/SKILL-AUTHORING.md) — how-to guides.
+- New bash-guard rule? See [`extensions/bash-guard/README.md`](extensions/bash-guard/README.md#adding-a-rule).
+- Plan mode internals? See [`extensions/plan-mode/`](extensions/plan-mode/) and [`docs/adr/0004-plan-mode-lifecycle.md`](docs/adr/0004-plan-mode-lifecycle.md).
+
+To add a new MCP bridge: add an entry to `MCP_REPOS` in `setup.sh`, then write
+a 25-line extension via `createMcpExtension(...)` from `lib/mcp-bridge`. See
+the existing `extensions/hugin/` and `extensions/docs-proxy/` for canonical
+examples.
 
 ## Requirements
 
 - [Node.js](https://nodejs.org/) 22+
 - [pi](https://github.com/earendil-works/pi-coding-agent) 0.74+
 - [pnpm](https://pnpm.io/) 9+
-- [Docker](https://www.docker.com/) (optional, for SearXNG)
+- [Docker](https://www.docker.com/) (optional, for SearXNG behind hugin)
 
 ## License
 

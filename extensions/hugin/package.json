@@ -3,6 +3,12 @@
   "private": true,
   "type": "module",
   "description": "Hugin MCP bridge — web search & reader via local hugin-mcp server",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@swe/mcp-bridge": "workspace:*"
+  },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "^0.74.0",
     "@earendil-works/pi-tui": "^0.74.0"

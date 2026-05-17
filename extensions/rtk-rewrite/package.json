@@ -1,0 +1,15 @@
+{
+  "name": "pi-rtk-rewrite",
+  "private": true,
+  "type": "module",
+  "description": "Transparent RTK proxy — rewrites bash commands for 60-90% token reduction.",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "^0.74.0"
+  },
+  "pi": {
+    "extensions": ["./index.ts"]
+  }
+}

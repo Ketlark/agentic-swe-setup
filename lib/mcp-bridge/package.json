@@ -1,0 +1,17 @@
+{
+  "name": "@swe/mcp-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared MCP bridge primitives for Pi extensions: stdio client, discovery, and a Pi-extension factory.",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "exports": {
+    ".": "./index.ts",
+    "./client": "./client.ts",
+    "./discover": "./discover.ts",
+    "./extension": "./extension.ts"
+  },
+  "types": "./index.ts"
+}

@@ -1,18 +1,45 @@
 {
   "name": "agentic-swe-setup",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "version": "0.1.0",
+  "description": "Portable Pi coding agent setup — extensions, skills, and MCP bridges.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "author": "agentic-swe-setup contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ketlark/agentic-swe-setup.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=9"
+  },
   "packageManager": "pnpm@9.15.9+sha512.68046141893c66fad01c079231128e9afb89ef87e2691d69e4d40eee228988295fd4682181bae55b58418c3a253bde65a505ec7c5f9403ece5cc3cd37dcf2531",
+  "scripts": {
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "typecheck": "pnpm -r --parallel run typecheck",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage --passWithNoTests",
+    "validate": "pnpm lint && pnpm typecheck && pnpm test",
+    "prepare": "lefthook install"
+  },
   "dependencies": {
     "@earendil-works/pi-coding-agent": "^0.74.0",
     "@earendil-works/pi-tui": "^0.74.0",
     "shell-quote": "^1.8.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
+    "@types/node": "^22.10.5",
+    "@types/shell-quote": "^1.7.5",
+    "@vitest/coverage-v8": "^2.1.8",
+    "lefthook": "^1.10.4",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
   }
 }

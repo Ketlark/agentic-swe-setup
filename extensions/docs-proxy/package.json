@@ -1,0 +1,19 @@
+{
+  "name": "pi-docs-proxy",
+  "private": true,
+  "type": "module",
+  "description": "docs-proxy MCP bridge — fetch docs for any library, GitHub repo, or URL.",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@swe/mcp-bridge": "workspace:*"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "^0.74.0",
+    "@earendil-works/pi-tui": "^0.74.0"
+  },
+  "pi": {
+    "extensions": ["./index.ts"]
+  }
+}

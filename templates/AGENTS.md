@@ -1,140 +1,109 @@
-# Agent Configuration
+# AGENTS.md
 
-This file guides AI coding agents working in this repository.
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
-## Project Context
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
-<!-- Replace this with your project-specific context -->
-- **Project Name**: [Your Project]
-- **Purpose**: [Brief description of what this project does]
-- **Tech Stack**: [Main languages, frameworks, and tools]
+## 1. Think Before Coding
 
-## Architecture Overview
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
 
-<!-- High-level architecture description -->
-- The codebase follows [pattern/architecture style]
-- Key modules: [main components and their responsibilities]
-- Data flow: [how data moves through the system]
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
 
-## Coding Conventions
+## 2. Simplicity First
 
-### General Principles
-- **Prefer existing patterns**: Look at similar code before introducing new approaches
-- **No premature abstraction**: Three similar usages are better than one unclear abstraction
-- **Clear naming**: Names should reveal intent without needing extra comments
+**Minimum code that solves the problem. Nothing speculative.**
 
-### Language-Specific Guidelines
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
 
-#### TypeScript/JavaScript
-- Use strict mode and proper type definitions
-- Prefer `const` over `let`, avoid `var`
-- Use async/await over Promise chains
-- Handle errors appropriately - never silently swallow exceptions
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 
-#### Python
-- Follow PEP 8 style guidelines
-- Use type hints for function signatures
-- Prefer context managers (`with` statements) for resource management
-- Use explicit error handling with specific exception types
+## 3. Surgical Changes
 
-#### Go
-- Follow effective Go guidelines
-- Use goroutines and channels carefully, document concurrency patterns
-- Prefer explicit error returns over panic/recover
-- Keep interfaces small and focused
+**Touch only what you must. Clean up only your own mess.**
 
-### Testing
-- Write tests for new features and bug fixes
-- Test edge cases and error conditions
-- Use descriptive test names that explain what is being tested
-- Maintain test independence - tests should not depend on each other
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
 
-## Git Workflow
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
 
-### Branching Strategy
-- Branch from `main` for all work
-- Use descriptive branch names: `feature/`, `fix/`, `refactor/`
-- Keep branches focused and short-lived
+The test: Every changed line should trace directly to the user's request.
 
-### Commit Practices
-- Write clear commit messages that explain WHY, not WHAT
-- Use conventional commit format: `type(scope): description`
-- Types: feat, fix, refactor, docs, test, chore
-- Example: `feat(auth): add OAuth2 login support`
+## 4. Goal-Driven Execution
 
-### Pull Requests
-- All changes require PR review before merging to main
-- PR descriptions should include:
-  - Summary of changes
-  - Testing performed
-  - Breaking changes (if any)
-  - Related issues/tickets
+**Define success criteria. Loop until verified.**
 
-## Development Workflow
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
 
-### Before Making Changes
-1. Read existing code in the area you'll modify
-2. Understand the existing patterns and conventions
-3. Check for open issues or PRs related to your work
-
-### While Coding
-1. Keep changes focused and atomic
-2. Run tests frequently during development
-3. Update documentation as you go
-4. Handle errors gracefully
-
-### Before Submitting
-1. Run the full test suite
-2. Check for linting issues
-3. Update related documentation
-4. Review your own changes one more time
-
-## Communication Style
-
-- **Be concise**: Provide necessary context without verbosity
-- **Be technical**: Assume the reader is familiar with the codebase
-- **Explain tradeoffs**: When making decisions, briefly explain alternatives considered
-- **Ask questions**: When requirements are unclear, ask rather than assume
-
-## Environment Setup
-
-```bash
-# Install dependencies
-npm install  # or pip install, go mod download, etc.
-
-# Run tests
-npm test     # or pytest, go test, etc.
-
-# Start development server
-npm run dev  # or appropriate command for your stack
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
 ```
 
-## Common Tasks
-
-### Adding a New Feature
-1. Check existing implementations for similar features
-2. Follow established patterns and conventions
-3. Write tests first (TDD) or alongside development
-4. Update documentation
-
-### Debugging
-- Check logs for error messages and stack traces
-- Use the debugger in your IDE
-- Add temporary logging to trace execution flow
-- Consult the issue tracker for known problems
-
-### Performance Optimization
-- Profile before optimizing
-- Focus on hot paths and bottlenecks
-- Document optimization decisions
-- Add benchmarks for critical code paths
-
-## Resources
-
-- Documentation: [link to docs if applicable]
-- Issue Tracker: [link to issues if applicable]
-- Team Communication: [Slack/Teams channel, etc.]
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
 ---
 
-**Note**: This template should be customized for your specific project. Remove placeholders and add details relevant to your codebase.
+**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+---
+
+## Harness extensions
+
+The following sections extend Karpathy's core rules with harness-engineering principles. They address failure modes that the four rules above don't cover: context exhaustion, premature broadening, and state loss across long tasks.
+
+### 5. Fail Loud
+
+Never swallow errors. Never return undefined where an error should propagate. Never catch and ignore.
+
+A crash with a stack trace beats silent wrong behaviour. When you hit something you can't solve, say so — don't paper over it with a workaround that hides the real problem.
+
+### 6. Narrow Before Broad
+
+Start with the smallest change that could work. If it fails, diagnose why before reaching for more complexity. Broadening is expensive; most tasks don't need it.
+
+The same applies to context: don't read 20 files to understand one function. Start from the call site, expand only when stuck.
+
+### 7. Respect the Context Budget
+
+Everything you read, write, or output consumes context. Long tool outputs, verbose logs, redundant file reads — all waste.
+
+Compress noisy output. Skim before deep-reading. Write state to files when a task spans many steps, so you don't rely on the context window to remember.
+
+---
+
+**Customise for your project.** Replace the sections below with specifics.
+
+## Project context
+
+- **Project name**: [your project]
+- **Tech stack**: [languages, frameworks, key tools]
+- **Architecture**: [one-sentence description of the dominant pattern]
+- **Build/test**: `[command to build]`, `[command to test]`
+
+## Conventions
+
+- [Link to CONTRIBUTING.md, CONTEXT.md, or equivalent]
+- [Any project-specific rules not covered above]
+
+---
+
+*Rules 1–4 from [Karpathy's CLAUDE.md](https://github.com/multica-ai/andrej-karpathy-skills/blob/main/CLAUDE.md). Rules 5–7 added for harness-specific failure modes.*

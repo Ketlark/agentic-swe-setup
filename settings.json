@@ -12,20 +12,33 @@
     "maxRetries": 3,
     "baseDelayMs": 2000
   },
-  "enabledModels": [
-    "claude-*",
-    "glm-*",
-    "gpt-4o"
-  ],
+  "enabledModels": ["claude-*", "glm-*", "gpt-4o"],
   "theme": "default",
   "quietStartup": false,
   "shellPath": "/bin/zsh",
   "extensions": [
     "extensions/bash-guard",
-    "extensions/hugin"
+    "extensions/plan-mode",
+    "extensions/rtk-rewrite",
+    "extensions/hugin",
+    "extensions/docs-proxy"
   ],
+  "planMode": {
+    "planModel": { "provider": "anthropic", "id": "claude-opus-4-6", "thinking": "medium" },
+    "executeModel": { "provider": "openai", "id": "gpt-5.5", "thinking": "low" }
+  },
   "skills": [
-    "skills/no-slop"
+    "skills/no-slop",
+    "skills/diagnose",
+    "skills/grill-me",
+    "skills/grill-with-docs",
+    "skills/handoff",
+    "skills/zoom-out",
+    "skills/review",
+    "skills/improve-codebase-architecture",
+    "skills/prototype",
+    "skills/narrow-first",
+    "skills/write-a-skill"
   ],
   "enableSkillCommands": true,
   "lastChangelogVersion": "0.74.0"

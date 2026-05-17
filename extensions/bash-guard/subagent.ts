@@ -1,23 +1,24 @@
-// ─── Subagent headless blocklist ─────────────────────────────────────────────
-//
 // In non-interactive subagent mode, catastrophic operations are hard-blocked.
-// No prompting — the subagent gets a block reason and must ask the parent agent.
+// No prompting — the subagent gets a block reason and must defer to the parent.
 //
-// Delegates to `isCatastrophic()` from analyze.ts (single source of truth, DRY).
+// Runs the rule engine in "subagent" mode (skips main-only rules, includes
+// subagent-only rules) and blocks on any high-severity finding.
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
-import { isCatastrophic } from "./analyze.js";
+import { analyzeBashCommand } from "./analyze.js";
 
 export function registerSubagentGuard(pi: ExtensionAPI): void {
 	pi.on("tool_call", async (event) => {
 		if (!isToolCallEventType("bash", event)) return;
-		const reason = isCatastrophic(event.input.command);
-		if (reason) {
-			return {
-				block: true,
-				reason: `Blocked by bash-guard: ${reason}. Non-interactive subagent — catastrophic operations not permitted.`,
-			};
-		}
+
+		const risk = analyzeBashCommand(event.input.command, { mode: "subagent" });
+		if (!risk || risk.severity !== "high") return;
+
+		const reason = risk.reasons[0] ?? "high-risk command";
+		return {
+			block: true,
+			reason: `Blocked by bash-guard: ${reason}. Non-interactive subagent — catastrophic operations not permitted.`,
+		};
 	});
 }
